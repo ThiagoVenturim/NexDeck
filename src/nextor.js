@@ -3,6 +3,7 @@
 const { ActionError } = require('./actions');
 
 const MODOS = ['normal', 'estudo', 'trabalho', 'tranquilidade', 'leitura'];
+const IDENTIDADES = ['nextor', 'claude', 'agy'];
 
 // Client for the Nextor local service. Only fixed routes are reachable from the phone.
 function createNextorClient({ url, token }, fetchImpl = fetch) {
@@ -35,6 +36,10 @@ function createNextorClient({ url, token }, fetchImpl = fetch) {
       if (!MODOS.includes(modo)) throw new ActionError(`Modo invalido. Use: ${MODOS.join(', ')}.`);
       return call('POST', '/modo', { modo });
     },
+    identidade(nome) {
+      if (!IDENTIDADES.includes(nome)) throw new ActionError(`Identidade invalida. Use: ${IDENTIDADES.join(', ')}.`);
+      return call('POST', '/identidade', { identidade: nome });
+    },
     conversa(texto, falar = false) {
       if (typeof texto !== 'string' || !texto.trim()) throw new ActionError('Mensagem vazia.');
       if (texto.length > 500) throw new ActionError('Mensagem passa de 500 caracteres.');
@@ -43,4 +48,4 @@ function createNextorClient({ url, token }, fetchImpl = fetch) {
   };
 }
 
-module.exports = { createNextorClient, MODOS };
+module.exports = { createNextorClient, MODOS, IDENTIDADES };

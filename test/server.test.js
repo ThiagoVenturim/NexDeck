@@ -240,6 +240,10 @@ test('Nextor companion: state, modes and chat go through fixed routes', async ()
   assert.equal(modo.body.estado.modo, 'leitura');
   assert.equal((await call('/api/nextor/modo', { method: 'POST', body: { modo: '../config' } })).status, 400);
 
+  assert.equal((await call('/api/nextor/identidade', { method: 'POST', body: { identidade: 'siri' } })).status, 400);
+  assert.equal((await call('/api/nextor/identidade', { method: 'POST', body: { identidade: 'claude' } })).status, 200);
+  assert.equal(nextorCalls.at(-1).url, 'http://nextor.local:5005/identidade');
+
   const conversa = await call('/api/nextor/conversa', { method: 'POST', body: { texto: '  oi  ', falar: 'sim' } });
   assert.equal(conversa.status, 200);
   assert.deepEqual(JSON.parse(nextorCalls.at(-1).init.body), { texto: 'oi', falar: false });

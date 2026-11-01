@@ -338,6 +338,9 @@
     state.petEstado = estado;
     window.Bichinho.render($('pet'), estado);
     document.querySelectorAll('#pet-modos button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modo === estado.modo)));
+    const ident = estado.identidade || 'nextor';
+    document.querySelectorAll('#pet-ident button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.identidade === ident)));
+    $('pet-nome').textContent = { nextor: 'Nextor', claude: 'Claude', agy: 'agy' }[ident] || 'Nextor';
     $('pet-humor').textContent = HUMOR[estado.emocao_usuario] || '';
   }
 
@@ -378,6 +381,14 @@
       const r = await api('/nextor/modo', { method: 'POST', body: { modo: b.dataset.modo } });
       drawPet(r.estado);
       petSay([r.frase, ...(r.avisos || [])].join(' '));
+    } catch (err) { toast(err.message, 'error'); }
+  }));
+
+  document.querySelectorAll('#pet-ident button').forEach((b) => b.addEventListener('click', async () => {
+    try {
+      const r = await api('/nextor/identidade', { method: 'POST', body: { identidade: b.dataset.identidade } });
+      drawPet(r.estado);
+      petSay(r.frase);
     } catch (err) { toast(err.message, 'error'); }
   }));
 
