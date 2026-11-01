@@ -7,6 +7,7 @@
   <title>NexDeck</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="bichinho.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -22,12 +23,37 @@
       <span class="brand">NexDeck</span>
       <nav id="tabs" class="tabs" aria-label="Paginas"></nav>
       <div class="actions">
+        <button id="pet-btn" class="icon-btn" title="Nextor" aria-pressed="false" hidden><i data-lucide="smile"></i></button>
         <button id="screen-btn" class="icon-btn" title="Ver a tela do PC" hidden><i data-lucide="cast"></i></button>
         <button id="edit-btn" class="icon-btn" title="Editar"><i data-lucide="pencil"></i></button>
       </div>
     </header>
 
     <main id="grid" class="grid"></main>
+
+    <section id="pet-view" class="pet-view" hidden aria-label="Nextor">
+      <p id="pet-balao" class="pet-balao" aria-live="polite" hidden></p>
+      <div id="pet" class="pet"></div>
+      <p id="pet-nome" class="pet-nome">Nextor</p>
+      <div id="pet-ident" class="pet-modos" role="group" aria-label="Quem responde">
+        <button data-identidade="nextor">Nextor</button>
+        <button data-identidade="claude">Claude</button>
+        <button data-identidade="agy">agy</button>
+      </div>
+      <p id="pet-humor" class="pet-humor" aria-live="polite"></p>
+      <div id="pet-modos" class="pet-modos" role="group" aria-label="Modo do Nextor">
+        <button data-modo="normal">Normal</button>
+        <button data-modo="estudo">Estudo</button>
+        <button data-modo="trabalho">Trabalho</button>
+        <button data-modo="tranquilidade">Tranquilidade</button>
+        <button data-modo="leitura">Leitura</button>
+      </div>
+      <form id="pet-form" class="nextor-bar">
+        <input id="pet-input" type="text" maxlength="500" placeholder="Converse com o Nextor..." autocomplete="off" aria-label="Mensagem para o Nextor">
+        <label class="pet-nest"><input id="pet-nest" type="checkbox"> no Nest</label>
+        <button class="icon-btn" title="Enviar"><i data-lucide="send"></i></button>
+      </form>
+    </section>
 
     <div id="edit-bar" class="edit-bar" hidden>
       <button id="page-add" class="ghost">Nova pagina</button>
@@ -81,6 +107,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="vendor/lucide.min.js"></script>
+  <script src="bichinho.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
