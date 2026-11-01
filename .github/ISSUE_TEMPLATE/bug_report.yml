@@ -1,0 +1,33 @@
+name: Relato de bug
+description: Algo nao funciona como documentado
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: O que aconteceu
+      description: O que voce fez, o que esperava e o que obteve.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Passos para reproduzir
+      description: O menor conjunto de passos que mostra o problema.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versao ou commit
+  - type: input
+    id: env
+    attributes:
+      label: Ambiente
+      description: Sistema operacional, navegador, versoes relevantes.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Remova segredos e dados pessoais antes de colar.
+      render: text

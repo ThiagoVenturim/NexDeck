@@ -1,0 +1,22 @@
+name: Sugestao de funcionalidade
+description: Proponha uma nova capacidade ou melhoria
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema
+      description: O que voce quer fazer e por que o comportamento atual nao basta.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta
+      description: Como poderia funcionar. Alternativas consideradas sao bem-vindas.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribuicao
+      options:
+        - label: Gostaria de abrir um pull request para isto

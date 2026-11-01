@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f19">
+  <title>NexDeck</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <section id="pair-screen" class="pair-screen" hidden>
+    <i data-lucide="smartphone"></i>
+    <h1>Parear com o PC</h1>
+    <p>Inicie o NexDeck no computador e leia o QR code que aparece no terminal com a camera do celular.</p>
+    <p class="muted">O link de pareamento so funciona na mesma rede Wi-Fi.</p>
+  </section>
+
+  <div id="app" class="app" hidden>
+    <header class="topbar">
+      <span class="brand">NexDeck</span>
+      <nav id="tabs" class="tabs" aria-label="Paginas"></nav>
+      <div class="actions">
+        <button id="screen-btn" class="icon-btn" title="Ver a tela do PC" hidden><i data-lucide="cast"></i></button>
+        <button id="edit-btn" class="icon-btn" title="Editar"><i data-lucide="pencil"></i></button>
+      </div>
+    </header>
+
+    <main id="grid" class="grid"></main>
+
+    <div id="edit-bar" class="edit-bar" hidden>
+      <button id="page-add" class="ghost">Nova pagina</button>
+      <button id="page-rename" class="ghost">Renomear</button>
+      <button id="page-delete" class="ghost danger">Excluir pagina</button>
+      <button id="deck-save" class="primary">Salvar no PC</button>
+    </div>
+
+    <form id="nextor-bar" class="nextor-bar" hidden>
+      <input id="nextor-input" type="text" maxlength="500" placeholder="Fale com o Nextor..." autocomplete="off">
+      <button class="icon-btn" title="Enviar ao Nextor"><i data-lucide="send"></i></button>
+    </form>
+  </div>
+
+  <dialog id="confirm-dialog">
+    <form method="dialog">
+      <p id="confirm-text"></p>
+      <div class="row">
+        <button value="cancel" class="ghost">Cancelar</button>
+        <button value="ok" class="primary danger">Confirmar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="editor-dialog">
+    <form id="editor-form" method="dialog">
+      <h2>Botao</h2>
+      <label>Nome <input id="ed-label" maxlength="40" required></label>
+      <div class="row">
+        <label>Icone <input id="ed-icon" maxlength="40" placeholder="ex.: music"></label>
+        <label>Cor <input id="ed-color" type="color" value="#334155"></label>
+      </div>
+      <label>Acao <select id="ed-type"></select></label>
+      <div id="ed-params"></div>
+      <div class="row">
+        <button type="button" id="ed-delete" class="ghost danger">Excluir</button>
+        <button type="button" id="ed-test" class="ghost">Testar</button>
+        <button value="cancel" class="ghost" formnovalidate>Cancelar</button>
+        <button value="ok" class="primary">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="screen-dialog" class="screen-dialog">
+    <form method="dialog">
+      <img id="screen-img" alt="Tela do PC">
+      <button class="ghost">Fechar</button>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="vendor/lucide.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

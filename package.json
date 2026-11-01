@@ -1,0 +1,30 @@
+{
+  "name": "nexdeck",
+  "version": "0.1.0",
+  "description": "Turn your phone into a secure stream deck for your Windows PC, over the local network, with an optional bridge to the Nextor voice assistant.",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test",
+    "check": "node scripts/check.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "stream-deck",
+    "remote-control",
+    "pwa",
+    "windows",
+    "nextor"
+  ],
+  "author": "Thiago Venturim",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.1.0",
+    "lucide": "^0.469.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

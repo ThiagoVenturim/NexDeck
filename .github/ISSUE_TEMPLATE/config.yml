@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Reportar uma vulnerabilidade de seguranca
+    url: https://github.com/ThiagoVenturim/NexDeck/security/advisories/new
+    about: Reporte vulnerabilidades de forma privada, nunca em uma issue publica.
