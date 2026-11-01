@@ -90,6 +90,12 @@ function createApp(deps) {
     res.json({ ok: true, result });
   });
 
+  // The Nextor companion ("bichinho"): state, modes and on-screen chat.
+  api.get('/nextor/estado', async (req, res) => res.json(await nextor.estado()));
+  api.post('/nextor/modo', async (req, res) => res.json(await nextor.modo(req.body?.modo)));
+  api.post('/nextor/identidade', async (req, res) => res.json(await nextor.identidade(req.body?.identidade)));
+  api.post('/nextor/conversa', async (req, res) => res.json(await nextor.conversa(req.body?.texto, req.body?.falar)));
+
   api.post('/screen/ticket', (req, res) => {
     if (!config.screenStream) return res.status(404).json({ error: 'Espelhamento de tela desligado.' });
     res.json({ ticket: auth.issueTicket() });
