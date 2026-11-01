@@ -77,6 +77,7 @@ Trocar o token de pareamento (desconecta todos os celulares): `npm start -- --ro
 
 Os dois projetos conversam pela rede local, cada um com o seu token:
 
+- **O bichinho:** o rosto do Nextor em pixels, com humor e modos (estudo, trabalho, tranquilidade, leitura), no botao de carinha do deck.
 - **NexDeck para Nextor:** botoes e a barra "Fale com o Nextor" enviam texto para
   `/comando`, `/falar`, `/anotar` ou `/conversar` do Nextor. Ex.: um botao "Meu dia"
   faz o Nest Mini ler a agenda.

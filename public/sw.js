@@ -1,6 +1,6 @@
 // Bump CACHE when the app shell changes.
-const CACHE = 'nexdeck-v1';
-const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'manifest.json', 'icon.svg', 'vendor/lucide.min.js'];
+const CACHE = 'nexdeck-v2';
+const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'manifest.json', 'icon.svg', 'bichinho.js', 'bichinho.css', 'vendor/lucide.min.js'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)));

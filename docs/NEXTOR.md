@@ -22,6 +22,19 @@ Com isso:
   `comando`, `falar`, `anotar` e `conversar`. Exemplos prontos no deck padrao:
   "Meu dia" e "Noticias".
 
+## O bichinho do Nextor no celular
+
+Com a ponte configurada, aparece um botao de carinha no topo do deck. Ele abre o rosto do Nextor
+(um painel de LEDs em pixel art) com:
+
+- o humor que o Nextor percebeu na conversa e a reacao do bichinho;
+- os modos Estudo (mochila), Trabalho (gravata borboleta), Tranquilidade (olhos relaxados) e Leitura (oculos),
+  que tambem ajustam o brilho da tela do PC e as luzes pelo Home Assistant, se configurado;
+- uma caixa para conversar; marque "no Nest" para ouvir a resposta no alto-falante.
+
+O NexDeck so repassa tres chamadas fixas para o Nextor: `GET /estado`, `POST /modo` (modo validado) e
+`POST /conversa` (texto de ate 500 caracteres).
+
 ## Nextor chamando o NexDeck
 
 No `.env` do Nextor:

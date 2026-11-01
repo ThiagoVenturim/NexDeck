@@ -29,6 +29,11 @@ const runner = {
 const nextorCalls = [];
 const fakeFetch = async (url, init) => {
   nextorCalls.push({ url, init });
+  if (url.endsWith('/estado')) return new Response(JSON.stringify({ modo: 'normal', expressao: 'neutro' }), { status: 200 });
+  if (url.endsWith('/modo')) {
+    const { modo } = JSON.parse(init.body);
+    return new Response(JSON.stringify({ ok: true, frase: 'Modo ' + modo, avisos: [], estado: { modo } }), { status: 200 });
+  }
   return new Response(JSON.stringify({ ok: true, resposta: 'Feito.' }), { status: 200 });
 };
 
@@ -220,4 +225,24 @@ test('repeated wrong tokens are rate limited', async () => {
   s.close();
   assert.equal(last.status, 429);
   assert.equal(blockedEvenWithToken.status, 429);
+});
+
+test('Nextor companion: state, modes and chat go through fixed routes', async () => {
+  nextorCalls.length = 0;
+  const estado = await call('/api/nextor/estado');
+  assert.equal(estado.status, 200);
+  assert.equal(estado.body.modo, 'normal');
+  assert.equal(nextorCalls[0].url, 'http://nextor.local:5005/estado');
+  assert.equal(nextorCalls[0].init.headers['X-Nextor-Token'], 'tk');
+
+  const modo = await call('/api/nextor/modo', { method: 'POST', body: { modo: 'leitura' } });
+  assert.equal(modo.status, 200);
+  assert.equal(modo.body.estado.modo, 'leitura');
+  assert.equal((await call('/api/nextor/modo', { method: 'POST', body: { modo: '../config' } })).status, 400);
+
+  const conversa = await call('/api/nextor/conversa', { method: 'POST', body: { texto: '  oi  ', falar: 'sim' } });
+  assert.equal(conversa.status, 200);
+  assert.deepEqual(JSON.parse(nextorCalls.at(-1).init.body), { texto: 'oi', falar: false });
+  assert.equal((await call('/api/nextor/conversa', { method: 'POST', body: { texto: '' } })).status, 400);
+  assert.equal((await call('/api/nextor/estado', { auth: null })).status, 401);
 });

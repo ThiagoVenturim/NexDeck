@@ -323,6 +323,80 @@
     $('screen-img').removeAttribute('src');
   });
 
+  // ---------------------------------------------------------------- nextor companion
+  const HUMOR = {
+    feliz: 'Que bom te ver animado.',
+    triste: 'Percebi que voce nao esta bem. Estou aqui.',
+    ansioso: 'Vamos com calma, um passo de cada vez.',
+    cansado: 'Voce parece cansado. Uma pausa pode ajudar.',
+    irritado: 'Dia dificil? Vamos resolver por partes.',
+  };
+  let petTimer = null;
+  let petVisible = false;
+
+  function drawPet(estado) {
+    state.petEstado = estado;
+    window.Bichinho.render($('pet'), estado);
+    document.querySelectorAll('#pet-modos button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modo === estado.modo)));
+    $('pet-humor').textContent = HUMOR[estado.emocao_usuario] || '';
+  }
+
+  function petSay(text) {
+    if (!text) return;
+    $('pet-balao').textContent = text;
+    $('pet-balao').hidden = false;
+  }
+
+  async function refreshPet() {
+    try { drawPet(await api('/nextor/estado')); } catch (err) { $('pet-humor').textContent = err.message; }
+  }
+
+  function showPet(show) {
+    petVisible = show;
+    $('pet-view').hidden = !show;
+    $('grid').hidden = show;
+    $('tabs').hidden = show;
+    $('edit-btn').hidden = show;
+    $('pet-btn').setAttribute('aria-pressed', String(show));
+    if (show) {
+      state.editing = false;
+      $('edit-bar').hidden = true;
+      $('nextor-bar').hidden = true;
+      refreshPet();
+      petTimer = setInterval(refreshPet, 2500);
+      refreshIcons();
+    } else {
+      clearInterval(petTimer);
+      render();
+    }
+  }
+
+  $('pet-btn').addEventListener('click', () => showPet(!petVisible));
+
+  document.querySelectorAll('#pet-modos button').forEach((b) => b.addEventListener('click', async () => {
+    try {
+      const r = await api('/nextor/modo', { method: 'POST', body: { modo: b.dataset.modo } });
+      drawPet(r.estado);
+      petSay([r.frase, ...(r.avisos || [])].join(' '));
+    } catch (err) { toast(err.message, 'error'); }
+  }));
+
+  $('pet-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = $('pet-input');
+    const texto = input.value.trim();
+    if (!texto) return;
+    input.disabled = true;
+    drawPet({ ...(state.petEstado || {}), atividade: 'pensando' });
+    try {
+      const r = await api('/nextor/conversa', { method: 'POST', body: { texto, falar: $('pet-nest').checked } });
+      input.value = '';
+      drawPet(r.estado);
+      petSay(r.resposta);
+      if (r.aviso) toast(r.aviso, 'error');
+    } catch (err) { toast(err.message, 'error'); } finally { input.disabled = false; input.focus(); }
+  });
+
   // ---------------------------------------------------------------- start
   async function start() {
     readPairingToken();
@@ -336,6 +410,7 @@
     $('pair-screen').hidden = true;
     $('app').hidden = false;
     $('screen-btn').hidden = !state.catalog.screenStream;
+    $('pet-btn').hidden = !state.catalog.nextor;
     render();
   }
 
