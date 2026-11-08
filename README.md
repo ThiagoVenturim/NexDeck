@@ -47,6 +47,7 @@ apenas em **redes privadas**.
 | Mostrar area de trabalho, Bloquear | Atalhos do sistema |
 | Suspender, Desligar (em 30 s), Cancelar desligamento | Pedem confirmacao no celular |
 | Enviar ao Nextor | Manda um comando, uma nota ou uma frase para o Nextor falar no Nest |
+| Estudos (Nextor) | Gravar aula, parar, resumo da aula, quiz do dia, flashcards e envio de material |
 | Acao personalizada | Roda um programa definido **so no PC**, em `data/custom-actions.json` |
 
 Exemplo de acao personalizada (`data/custom-actions.json`):
@@ -78,6 +79,7 @@ Trocar o token de pareamento (desconecta todos os celulares): `npm start -- --ro
 Os dois projetos conversam pela rede local, cada um com o seu token:
 
 - **O bichinho:** o rosto do Nextor em pixels, com humor e modos (estudo, trabalho, tranquilidade, leitura), no botao de carinha do deck.
+- **Estudos no celular:** pagina dedicada com gravador de aula, resumo, quiz interativo, flashcards com virada 3D e envio de fotos do quadro/PDFs para a biblioteca com OCR feito no PC.
 - **NexDeck para Nextor:** botoes e a barra "Fale com o Nextor" enviam texto para
   `/comando`, `/falar`, `/anotar` ou `/conversar` do Nextor. Ex.: um botao "Meu dia"
   faz o Nest Mini ler a agenda.
