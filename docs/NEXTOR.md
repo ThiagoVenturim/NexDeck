@@ -32,8 +32,25 @@ Com a ponte configurada, aparece um botao de carinha no topo do deck. Ele abre o
   que tambem ajustam o brilho da tela do PC e as luzes pelo Home Assistant, se configurado;
 - uma caixa para conversar; marque "no Nest" para ouvir a resposta no alto-falante.
 
-O NexDeck so repassa tres chamadas fixas para o Nextor: `GET /estado`, `POST /modo` (modo validado) e
+O NexDeck so repassa chamadas fixas para o Nextor: `GET /estado`, `POST /modo` (modo validado) e
 `POST /conversa` (texto de ate 500 caracteres).
+
+## Estudos: gravacao de aula, quiz, flashcards e biblioteca
+
+Com a ponte ativa, o deck traz a pagina Estudos no layout padrao:
+
+- Gravar aula e Parar: acoes no catalogo (`estudos.gravar_aula` e `estudos.parar_aula`) que chamam
+  `/estudos/aulas/gravar` e `/estudos/aulas/parar` do Nextor, com badge visual indicador de gravacao
+  em andamento sincronizado com `GET /estudos/aulas/status`.
+- Resumo da ultima aula: acao `estudos.resumo` que busca o resumo estruturado e topicos em `POST /estudos/resumo`.
+- Quiz do dia: acao `estudos.quiz` que abre tela dedicada no PWA, gera questoes via `POST /estudos/quiz/gerar`
+  e registra as tentativas e repeticao espacada via `POST /estudos/quiz/responder`.
+- Flashcards: acao `estudos.flashcards` com visualizacao de cartas 3D, suporte a gestos de toque/deslize
+  e botoes acessiveis.
+- Envio de material para a biblioteca: acao `estudos.upload_material` que envia fotos do quadro, PDFs ou links
+  para `/estudos/disciplinas/<disciplina>/materiais`. O OCR e processamento ocorrem no PC pelo Nextor;
+  nenhum arquivo fica retido no celular apos o envio.
+- Barra "Perguntar sobre a materia": envia perguntas direto para `/estudos/perguntar` com a disciplina escolhida.
 
 ## Nextor chamando o NexDeck
 

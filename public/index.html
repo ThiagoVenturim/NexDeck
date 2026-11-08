@@ -21,6 +21,7 @@
   <div id="app" class="app" hidden>
     <header class="topbar">
       <span class="brand">NexDeck</span>
+      <div id="rec-badge" class="rec-badge" hidden aria-live="polite"><span class="rec-dot"></span> Gravando</div>
       <nav id="tabs" class="tabs" aria-label="Paginas"></nav>
       <div class="actions">
         <button id="pet-btn" class="icon-btn" title="Nextor" aria-pressed="false" hidden><i data-lucide="smile"></i></button>
@@ -66,6 +67,14 @@
       <input id="nextor-input" type="text" maxlength="500" placeholder="Fale com o Nextor..." autocomplete="off">
       <button class="icon-btn" title="Enviar ao Nextor"><i data-lucide="send"></i></button>
     </form>
+
+    <form id="estudos-bar" class="estudos-bar nextor-bar" hidden>
+      <select id="estudos-disciplina-select" class="estudos-select" aria-label="Seletor de disciplina">
+        <option value="Geral">Geral</option>
+      </select>
+      <input id="estudos-pergunta-input" type="text" maxlength="500" placeholder="Perguntar sobre a materia..." autocomplete="off" aria-label="Perguntar sobre a materia">
+      <button class="icon-btn" title="Perguntar"><i data-lucide="send"></i></button>
+    </form>
   </div>
 
   <dialog id="confirm-dialog">
@@ -95,6 +104,109 @@
         <button value="ok" class="primary">OK</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="quiz-dialog" class="study-dialog" aria-label="Quiz">
+    <div class="study-dialog-content">
+      <div class="study-header">
+        <h2 id="quiz-title">Quiz</h2>
+        <button type="button" id="quiz-close" class="icon-btn" aria-label="Fechar quiz"><i data-lucide="x"></i></button>
+      </div>
+      <div id="quiz-progress" class="study-meta" aria-live="polite"></div>
+      <div id="quiz-body" class="study-body">
+        <p id="quiz-question" class="study-question"></p>
+        <div id="quiz-options" class="study-options" role="group" aria-label="Alternativas"></div>
+        <div id="quiz-feedback" class="study-feedback" hidden aria-live="polite">
+          <p id="quiz-feedback-status" class="feedback-status"></p>
+          <p id="quiz-feedback-text" class="feedback-text"></p>
+          <p id="quiz-feedback-source" class="feedback-source muted"></p>
+          <button type="button" id="quiz-next" class="primary full-width">Proxima questao</button>
+        </div>
+      </div>
+      <div id="quiz-finished" class="study-finished" hidden>
+        <h3>Quiz concluido</h3>
+        <p id="quiz-summary-text"></p>
+        <button type="button" id="quiz-finish-btn" class="primary full-width">Concluir</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="flashcards-dialog" class="study-dialog" aria-label="Flashcards">
+    <div class="study-dialog-content">
+      <div class="study-header">
+        <h2 id="flashcards-title">Flashcards</h2>
+        <button type="button" id="flashcards-close" class="icon-btn" aria-label="Fechar flashcards"><i data-lucide="x"></i></button>
+      </div>
+      <div id="flashcards-progress" class="study-meta" aria-live="polite"></div>
+      <div class="flashcard-scene">
+        <div id="flashcard" class="flashcard" role="button" tabindex="0" aria-label="Flashcard. Toque para virar." aria-live="polite">
+          <div class="flashcard-face flashcard-front">
+            <span class="card-side-tag">Pergunta</span>
+            <p id="flashcard-front-text"></p>
+            <span class="card-hint muted">Toque para ver a resposta</span>
+          </div>
+          <div class="flashcard-face flashcard-back">
+            <span class="card-side-tag">Resposta</span>
+            <p id="flashcard-back-text"></p>
+            <p id="flashcard-back-source" class="card-source muted"></p>
+          </div>
+        </div>
+      </div>
+      <div class="flashcards-controls">
+        <button type="button" id="fc-prev" class="ghost" aria-label="Card anterior"><i data-lucide="chevron-left"></i> Anterior</button>
+        <button type="button" id="fc-flip" class="ghost" aria-label="Virar card"><i data-lucide="rotate-cw"></i> Virar</button>
+        <button type="button" id="fc-next" class="primary" aria-label="Proximo card">Proximo <i data-lucide="chevron-right"></i></button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="upload-dialog" class="study-dialog" aria-label="Enviar material">
+    <form id="upload-form" class="study-dialog-content">
+      <div class="study-header">
+        <h2>Enviar material</h2>
+        <button type="button" id="upload-close" class="icon-btn" aria-label="Fechar envio"><i data-lucide="x"></i></button>
+      </div>
+      <label>
+        Disciplina
+        <select id="upload-disciplina" class="estudos-select" required aria-label="Disciplina do material"></select>
+      </label>
+      <div class="upload-mode-toggle" role="radiogroup" aria-label="Tipo de envio">
+        <button type="button" id="mode-file-btn" class="active" aria-pressed="true">Foto / Arquivo</button>
+        <button type="button" id="mode-link-btn" aria-pressed="false">Link</button>
+      </div>
+      <div id="upload-file-section">
+        <label>
+          Arquivo (foto do quadro, PDF ou texto - max. 10 MB)
+          <input type="file" id="upload-file-input" accept="image/*,application/pdf,text/plain,.md" capture="environment">
+        </label>
+        <div id="upload-file-info" class="upload-file-info muted" hidden></div>
+      </div>
+      <div id="upload-link-section" hidden>
+        <label>
+          Link
+          <input type="url" id="upload-link-input" placeholder="https://exemplo.com/material">
+        </label>
+      </div>
+      <label>
+        Titulo (opcional)
+        <input type="text" id="upload-title-input" maxlength="200" placeholder="Ex.: Aula 04 - Derivadas">
+      </label>
+      <div class="row">
+        <button type="button" id="upload-cancel-btn" class="ghost">Cancelar</button>
+        <button type="submit" id="upload-submit-btn" class="primary">Enviar ao Nextor</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="resumo-dialog" class="study-dialog" aria-label="Resumo da aula">
+    <div class="study-dialog-content">
+      <div class="study-header">
+        <h2 id="resumo-title">Resumo da aula</h2>
+        <button type="button" id="resumo-close" class="icon-btn" aria-label="Fechar resumo"><i data-lucide="x"></i></button>
+      </div>
+      <div id="resumo-body" class="study-body resumo-content" aria-live="polite"></div>
+      <button type="button" id="resumo-ok-btn" class="primary full-width">Fechar</button>
+    </div>
   </dialog>
 
   <dialog id="screen-dialog" class="screen-dialog">

@@ -6,11 +6,12 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { createApp } = require('../src/server');
-const { createAuth, loadOrCreateToken } = require('../src/auth');
+const { createAuth, loadOrCreateToken, safeEqual } = require('../src/auth');
 const { createStore, createCustomActions, DEFAULT_DECK } = require('../src/store');
 const { createNextorClient } = require('../src/nextor');
 const { isAllowedAppPath } = require('../src/apps');
 const { ROOT } = require('../src/config');
+const { MAX_UPLOAD_BYTES, ALLOWED_UPLOAD_EXTS } = require('../src/actions');
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nexdeck-test-'));
 const startMenu = path.join(dataDir, 'StartMenu');
@@ -33,6 +34,69 @@ const fakeFetch = async (url, init) => {
   if (url.endsWith('/modo')) {
     const { modo } = JSON.parse(init.body);
     return new Response(JSON.stringify({ ok: true, frase: 'Modo ' + modo, avisos: [], estado: { modo } }), { status: 200 });
+  }
+  if (url.endsWith('/estudos/disciplinas')) {
+    return new Response(JSON.stringify({ ok: true, disciplinas: [{ id: 1, nome: 'Calculo' }] }), { status: 200 });
+  }
+  if (url.endsWith('/estudos/aulas/gravar')) {
+    const { disciplina } = JSON.parse(init.body);
+    return new Response(JSON.stringify({ ok: true, gravando: true, disciplina, mensagem: 'Gravacao iniciada.' }), { status: 200 });
+  }
+  if (url.endsWith('/estudos/aulas/parar')) {
+    return new Response(JSON.stringify({ ok: true, gravando: false, mensagem: 'Gravacao finalizada.' }), { status: 200 });
+  }
+  if (url.endsWith('/estudos/aulas/status')) {
+    return new Response(JSON.stringify({ ok: true, gravando: true, disciplina: 'Calculo' }), { status: 200 });
+  }
+  if (url.endsWith('/estudos/resumo')) {
+    const { disciplina } = JSON.parse(init.body);
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        disciplina,
+        resumo: 'Resumo sobre derivadas.',
+        flashcards: [{ pergunta: 'O que e derivada?', resposta: 'Taxa de variacao.', fonte: 'Aula 1' }],
+      }),
+      { status: 200 },
+    );
+  }
+  if (url.endsWith('/estudos/quiz/gerar')) {
+    const { disciplina } = JSON.parse(init.body);
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        disciplina,
+        questoes: [
+          { id: 10, pergunta: 'Qual e o limite?', opcoes: ['0', '1', 'Infinito'], resposta_correta: '1', explicacao: 'Pelo teorema.', fonte: 'Livro' },
+        ],
+      }),
+      { status: 200 },
+    );
+  }
+  if (url.endsWith('/estudos/quiz/responder')) {
+    const { questao_id, resposta } = JSON.parse(init.body);
+    const correto = resposta === '1';
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        correto,
+        questao_id,
+        resposta_correta: '1',
+        explicacao: 'Pelo teorema.',
+        fonte: 'Livro',
+      }),
+      { status: 200 },
+    );
+  }
+  if (url.includes('/estudos/quiz/historico')) {
+    return new Response(JSON.stringify({ ok: true, historico: [] }), { status: 200 });
+  }
+  if (url.endsWith('/estudos/perguntar')) {
+    const { disciplina, pergunta } = JSON.parse(init.body);
+    return new Response(JSON.stringify({ ok: true, disciplina, resposta: `Resposta para ${pergunta}` }), { status: 200 });
+  }
+  if (url.includes('/materiais')) {
+    return new Response(JSON.stringify({ ok: true, id: 99, status: 'processado' }), { status: 200 });
   }
   return new Response(JSON.stringify({ ok: true, resposta: 'Feito.' }), { status: 200 });
 };
@@ -249,4 +313,240 @@ test('Nextor companion: state, modes and chat go through fixed routes', async ()
   assert.deepEqual(JSON.parse(nextorCalls.at(-1).init.body), { texto: 'oi', falar: false });
   assert.equal((await call('/api/nextor/conversa', { method: 'POST', body: { texto: '' } })).status, 400);
   assert.equal((await call('/api/nextor/estado', { auth: null })).status, 401);
+});
+
+test('default deck contains Estudos page with configured study buttons', () => {
+  const estudosPage = DEFAULT_DECK.pages.find((p) => p.name === 'Estudos');
+  assert.ok(estudosPage, 'Estudos page should exist in DEFAULT_DECK');
+  assert.equal(estudosPage.buttons.length, 6);
+  const actionTypes = estudosPage.buttons.map((b) => b.action.type);
+  assert.ok(actionTypes.includes('estudos.gravar_aula'));
+  assert.ok(actionTypes.includes('estudos.parar_aula'));
+  assert.ok(actionTypes.includes('estudos.resumo'));
+  assert.ok(actionTypes.includes('estudos.quiz'));
+  assert.ok(actionTypes.includes('estudos.flashcards'));
+  assert.ok(actionTypes.includes('estudos.upload_material'));
+});
+
+test('estudos actions in catalog execute via Nextor bridge with token', async () => {
+  nextorCalls.length = 0;
+  calls.length = 0;
+
+  // Recording start
+  const recRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: { action: { type: 'estudos.gravar_aula', params: { disciplina: 'Calculo' } } },
+  });
+  assert.equal(recRes.status, 200);
+  assert.equal(recRes.body.result.gravando, true);
+  assert.equal(nextorCalls.at(-1).url, 'http://nextor.local:5005/estudos/aulas/gravar');
+  assert.equal(nextorCalls.at(-1).init.headers['X-Nextor-Token'], 'tk');
+
+  // Recording stop
+  const stopRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: { action: { type: 'estudos.parar_aula', params: {} } },
+  });
+  assert.equal(stopRes.status, 200);
+  assert.equal(stopRes.body.result.gravando, false);
+  assert.equal(nextorCalls.at(-1).url, 'http://nextor.local:5005/estudos/aulas/parar');
+
+  // Status
+  const statusRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: { action: { type: 'estudos.status_aula', params: {} } },
+  });
+  assert.equal(statusRes.status, 200);
+  assert.equal(nextorCalls.at(-1).url, 'http://nextor.local:5005/estudos/aulas/status');
+
+  // Resumo
+  const resumoRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: { action: { type: 'estudos.resumo', params: { disciplina: 'Calculo' } } },
+  });
+  assert.equal(resumoRes.status, 200);
+  assert.ok(resumoRes.body.result.resumo);
+  assert.equal(nextorCalls.at(-1).url, 'http://nextor.local:5005/estudos/resumo');
+
+  // Perguntar
+  const pergRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: { action: { type: 'estudos.perguntar', params: { disciplina: 'Calculo', pergunta: 'O que e limite?' } } },
+  });
+  assert.equal(pergRes.status, 200);
+  assert.ok(pergRes.body.result.resposta);
+  assert.equal(nextorCalls.at(-1).url, 'http://nextor.local:5005/estudos/perguntar');
+});
+
+test('estudos quiz and flashcards generation and answer flow', async () => {
+  nextorCalls.length = 0;
+
+  // Quiz generation
+  const quizRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: { action: { type: 'estudos.quiz', params: { disciplina: 'Calculo', quantidade: 3 } } },
+  });
+  assert.equal(quizRes.status, 200);
+  assert.equal(quizRes.body.result.questoes.length, 1);
+  assert.equal(nextorCalls.at(-1).url, 'http://nextor.local:5005/estudos/quiz/gerar');
+
+  // Quiz responder
+  const ansRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: { action: { type: 'estudos.quiz_responder', params: { questao_id: 10, resposta: '1' } } },
+  });
+  assert.equal(ansRes.status, 200);
+  assert.equal(ansRes.body.result.correto, true);
+  assert.equal(nextorCalls.at(-1).url, 'http://nextor.local:5005/estudos/quiz/responder');
+
+  // Flashcards
+  const fcRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: { action: { type: 'estudos.flashcards', params: { disciplina: 'Calculo' } } },
+  });
+  assert.equal(fcRes.status, 200);
+  assert.equal(fcRes.body.result.flashcards.length, 1);
+});
+
+test('estudos upload validates allowed types and size limit', async () => {
+  // Reject forbidden file extension (.exe)
+  const exeRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: {
+      action: {
+        type: 'estudos.upload_material',
+        params: {
+          disciplina: 'Calculo',
+          nome: 'trojan.exe',
+          mimeType: 'application/x-msdownload',
+          dados: Buffer.from('payload').toString('base64'),
+        },
+      },
+    },
+  });
+  assert.equal(exeRes.status, 400);
+  assert.ok(exeRes.body.error.includes('nao permitida'));
+
+  // Reject file exceeding 10 MB limit
+  const bigBuffer = Buffer.alloc(MAX_UPLOAD_BYTES + 1024, 0x41);
+  const bigRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: {
+      action: {
+        type: 'estudos.upload_material',
+        params: {
+          disciplina: 'Calculo',
+          nome: 'grande.pdf',
+          mimeType: 'application/pdf',
+          dados: bigBuffer.toString('base64'),
+        },
+      },
+    },
+  });
+  assert.equal(bigRes.status, 400);
+  assert.ok(bigRes.body.error.includes('excede o limite de 10 MB'));
+
+  // Reject empty file
+  const emptyRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: {
+      action: {
+        type: 'estudos.upload_material',
+        params: {
+          disciplina: 'Calculo',
+          nome: 'vazio.txt',
+          mimeType: 'text/plain',
+          dados: '',
+        },
+      },
+    },
+  });
+  assert.equal(emptyRes.status, 400);
+
+  // Reject invalid link protocol
+  const badUrlRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: {
+      action: {
+        type: 'estudos.upload_material',
+        params: {
+          disciplina: 'Calculo',
+          tipo: 'link',
+          url: 'ftp://files.example.com/notes.pdf',
+        },
+      },
+    },
+  });
+  assert.equal(badUrlRes.status, 400);
+});
+
+test('estudos upload accepts valid image, pdf, text, and link', async () => {
+  nextorCalls.length = 0;
+
+  // Valid image upload
+  const imgData = Buffer.from('fake-jpeg-data').toString('base64');
+  const imgRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: {
+      action: {
+        type: 'estudos.upload_material',
+        params: {
+          disciplina: 'Calculo',
+          titulo: 'Foto do Quadro',
+          nome: 'quadro.jpg',
+          mimeType: 'image/jpeg',
+          dados: imgData,
+        },
+      },
+    },
+  });
+  assert.equal(imgRes.status, 200);
+  assert.ok(nextorCalls.at(-1).url.includes('/estudos/disciplinas/Calculo/materiais'));
+  assert.equal(nextorCalls.at(-1).init.headers['X-Nextor-Token'], 'tk');
+
+  // Valid link upload
+  const linkRes = await call('/api/actions/test', {
+    method: 'POST',
+    body: {
+      action: {
+        type: 'estudos.upload_material',
+        params: {
+          disciplina: 'Fisica',
+          titulo: 'Artigo de Mecanica',
+          tipo: 'link',
+          url: 'https://exemplo.com/mecanica.pdf',
+        },
+      },
+    },
+  });
+  assert.equal(linkRes.status, 200);
+  assert.ok(nextorCalls.at(-1).url.includes('/estudos/disciplinas/Fisica/materiais'));
+  assert.deepEqual(JSON.parse(nextorCalls.at(-1).init.body), {
+    origem: 'https://exemplo.com/mecanica.pdf',
+    titulo: 'Artigo de Mecanica',
+    tipo: 'link',
+  });
+});
+
+test('timing-safe auth comparison and route protections', async () => {
+  // safeEqual comparison
+  assert.equal(safeEqual('secret-token-12345', 'secret-token-12345'), true);
+  assert.equal(safeEqual('secret-token-12345', 'secret-token-wrong'), false);
+  assert.equal(safeEqual('abc', 'abcdef'), false);
+
+  // Unauthenticated calls are rejected
+  assert.equal((await call('/api/estudos/disciplinas', { auth: null })).status, 401);
+  assert.equal((await call('/api/estudos/aulas/status', { auth: null })).status, 401);
+  assert.equal((await call('/api/estudos/quiz/gerar', { method: 'POST', auth: null })).status, 401);
+  assert.equal((await call('/api/estudos/upload', { method: 'POST', auth: null })).status, 401);
+
+  // Unknown catalog action is rejected
+  const unknownAct = await call('/api/actions/test', {
+    method: 'POST',
+    body: { action: { type: 'shell.exec', params: { command: 'dir' } } },
+  });
+  assert.equal(unknownAct.status, 400);
+
+  // Ensure runner was never called for any estudos action
+  assert.equal(calls.length, 0, 'No study action should ever invoke runner or powershell');
 });
