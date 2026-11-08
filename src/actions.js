@@ -21,6 +21,28 @@ const MEDIA_KEYS = {
 
 const NEXTOR_ENDPOINTS = ['comando', 'falar', 'anotar', 'conversar'];
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+const ALLOWED_UPLOAD_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.pdf', '.txt', '.md'];
+const ALLOWED_UPLOAD_MIMES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'application/pdf',
+  'text/plain',
+  'text/markdown',
+];
+const EXT_TO_MIME = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.pdf': 'application/pdf',
+  '.txt': 'text/plain',
+  '.md': 'text/markdown',
+};
+
 function text(value, field, max = 500) {
   if (typeof value !== 'string' || !value.trim()) throw new ActionError(`Campo "${field}" obrigatorio.`);
   if (value.length > max) throw new ActionError(`Campo "${field}" passa de ${max} caracteres.`);
@@ -149,6 +171,122 @@ const CATALOG = {
       return ctx.runner.run(def.command, def.args || []);
     },
   },
+  'estudos.gravar_aula': {
+    label: 'Gravar aula',
+    validate: (p) => ({ disciplina: text(p.disciplina || 'Geral', 'disciplina', 100) }),
+    run: (p, ctx) => ctx.nextor.estudosGravarAula(p.disciplina),
+  },
+  'estudos.parar_aula': {
+    label: 'Parar gravacao',
+    validate: () => ({}),
+    run: (p, ctx) => ctx.nextor.estudosPararAula(),
+  },
+  'estudos.status_aula': {
+    label: 'Status da gravacao',
+    validate: () => ({}),
+    run: (p, ctx) => ctx.nextor.estudosStatusAula(),
+  },
+  'estudos.resumo': {
+    label: 'Resumo da aula',
+    validate: (p) => ({
+      disciplina: text(p.disciplina || 'Geral', 'disciplina', 100),
+      alvo: typeof p.alvo === 'string' ? p.alvo.trim().slice(0, 200) : '',
+    }),
+    run: (p, ctx) => ctx.nextor.estudosResumo(p.disciplina, p.alvo),
+  },
+  'estudos.quiz': {
+    label: 'Quiz de estudos',
+    validate: (p) => {
+      const qtd = p.quantidade === undefined ? 3 : Number(p.quantidade);
+      if (!Number.isInteger(qtd) || qtd < 1 || qtd > 10) {
+        throw new ActionError('Quantidade de questoes deve ser entre 1 e 10.');
+      }
+      return { disciplina: text(p.disciplina || 'Geral', 'disciplina', 100), quantidade: qtd };
+    },
+    run: (p, ctx) => ctx.nextor.estudosQuizGerar(p.disciplina, p.quantidade),
+  },
+  'estudos.quiz_responder': {
+    label: 'Responder questao de quiz',
+    validate: (p) => {
+      const qid = Number(p.questao_id);
+      if (!Number.isInteger(qid) || qid <= 0) {
+        throw new ActionError('Campo "questao_id" deve ser um numero positivo.');
+      }
+      return { questao_id: qid, resposta: text(p.resposta, 'resposta', 500) };
+    },
+    run: (p, ctx) => ctx.nextor.estudosQuizResponder(p.questao_id, p.resposta),
+  },
+  'estudos.flashcards': {
+    label: 'Flashcards de estudos',
+    validate: (p) => ({
+      disciplina: text(p.disciplina || 'Geral', 'disciplina', 100),
+      alvo: typeof p.alvo === 'string' ? p.alvo.trim().slice(0, 200) : '',
+    }),
+    run: (p, ctx) => ctx.nextor.estudosResumo(p.disciplina, p.alvo),
+  },
+  'estudos.perguntar': {
+    label: 'Perguntar sobre a materia',
+    validate: (p) => ({
+      disciplina: text(p.disciplina || 'Geral', 'disciplina', 100),
+      pergunta: text(p.pergunta || p.texto, 'pergunta', 1000),
+    }),
+    run: (p, ctx) => ctx.nextor.estudosPerguntar(p.disciplina, p.pergunta),
+  },
+  'estudos.upload_material': {
+    label: 'Enviar material de estudos',
+    validate(p) {
+      const disciplina = text(p.disciplina || 'Geral', 'disciplina', 100);
+      const titulo = typeof p.titulo === 'string' ? p.titulo.trim().slice(0, 200) : '';
+
+      if (p.tipo === 'link' || (p.url && !p.dados && !p.conteudo && !p.buffer)) {
+        let u;
+        try {
+          u = new URL(text(p.url, 'url', 2000));
+        } catch {
+          throw new ActionError('URL invalida.');
+        }
+        if (!['http:', 'https:'].includes(u.protocol)) {
+          throw new ActionError('Apenas links http ou https.');
+        }
+        return { tipo: 'link', disciplina, titulo, url: u.href };
+      }
+
+      const rawNome = text(p.nome, 'nome', 255);
+      const nome = path.basename(rawNome);
+      if (!nome) throw new ActionError('Nome de arquivo invalido.');
+      const ext = path.extname(nome).toLowerCase();
+      if (!ALLOWED_UPLOAD_EXTS.includes(ext)) {
+        throw new ActionError(`Extensao "${ext}" nao permitida. Use imagem, PDF ou texto.`);
+      }
+
+      const mimeType =
+        typeof p.mimeType === 'string' && p.mimeType.trim()
+          ? p.mimeType.trim().toLowerCase()
+          : EXT_TO_MIME[ext] || 'application/octet-stream';
+
+      if (!ALLOWED_UPLOAD_MIMES.includes(mimeType) && !ALLOWED_UPLOAD_EXTS.includes(ext)) {
+        throw new ActionError(`Tipo MIME "${mimeType}" nao permitido. Use imagem, PDF ou texto.`);
+      }
+
+      let buf;
+      if (Buffer.isBuffer(p.buffer || p.dados || p.conteudo)) {
+        buf = p.buffer || p.dados || p.conteudo;
+      } else if (typeof (p.dados || p.conteudo) === 'string') {
+        buf = Buffer.from(p.dados || p.conteudo, 'base64');
+      } else {
+        throw new ActionError('Conteudo do arquivo ausente.');
+      }
+
+      if (buf.length === 0) throw new ActionError('Arquivo vazio.');
+      if (buf.length > MAX_UPLOAD_BYTES) throw new ActionError('Arquivo excede o limite de 10 MB.');
+
+      return { tipo: 'arquivo', disciplina, titulo, nome, mimeType, buffer: buf };
+    },
+    run: (p, ctx) =>
+      p.tipo === 'link'
+        ? ctx.nextor.estudosImportarLink(p.disciplina, p.url, p.titulo)
+        : ctx.nextor.estudosImportarArquivo(p.disciplina, p.nome, p.buffer, p.mimeType, p.titulo),
+  },
 };
 
 function validateAction(action, ctx) {
@@ -162,7 +300,7 @@ async function runAction(action, ctx, { confirmed = false } = {}) {
   const valid = validateAction(action, ctx);
   const def = CATALOG[valid.type];
   if (def.confirm && !confirmed) throw new ActionError('Esta acao precisa de confirmacao.', 409);
-  if (ctx.platform !== 'win32' && !valid.type.startsWith('nextor.')) {
+  if (ctx.platform !== 'win32' && !valid.type.startsWith('nextor.') && !valid.type.startsWith('estudos.')) {
     throw new ActionError('Esta acao so funciona no Windows.', 501);
   }
   return def.run(valid.params, ctx);
@@ -172,4 +310,15 @@ function describeCatalog() {
   return Object.entries(CATALOG).map(([type, def]) => ({ type, label: def.label, confirm: Boolean(def.confirm) }));
 }
 
-module.exports = { CATALOG, MEDIA_KEYS, NEXTOR_ENDPOINTS, ActionError, validateAction, runAction, describeCatalog };
+module.exports = {
+  CATALOG,
+  MEDIA_KEYS,
+  NEXTOR_ENDPOINTS,
+  MAX_UPLOAD_BYTES,
+  ALLOWED_UPLOAD_EXTS,
+  ALLOWED_UPLOAD_MIMES,
+  ActionError,
+  validateAction,
+  runAction,
+  describeCatalog,
+};

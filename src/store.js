@@ -41,6 +41,17 @@ const DEFAULT_DECK = {
         { id: 'nextor_noticias', label: 'Noticias', icon: 'newspaper', color: '#8e2de2', action: { type: 'nextor.send', params: { endpoint: 'comando', texto: 'noticias' } } },
       ],
     },
+    {
+      name: 'Estudos',
+      buttons: [
+        { id: 'estudos_gravar', label: 'Gravar aula', icon: 'mic', color: '#dc2626', action: { type: 'estudos.gravar_aula', params: { disciplina: 'Geral' } } },
+        { id: 'estudos_parar', label: 'Parar gravacao', icon: 'square', color: '#475569', action: { type: 'estudos.parar_aula', params: {} } },
+        { id: 'estudos_resumo', label: 'Resumo da aula', icon: 'file-text', color: '#2563eb', action: { type: 'estudos.resumo', params: { disciplina: 'Geral' } } },
+        { id: 'estudos_quiz', label: 'Quiz do dia', icon: 'help-circle', color: '#7c3aed', action: { type: 'estudos.quiz', params: { disciplina: 'Geral', quantidade: 3 } } },
+        { id: 'estudos_flashcards', label: 'Flashcards', icon: 'layers', color: '#059669', action: { type: 'estudos.flashcards', params: { disciplina: 'Geral' } } },
+        { id: 'estudos_upload', label: 'Enviar material', icon: 'upload', color: '#d97706', action: { type: 'estudos.upload_material', params: { disciplina: 'Geral' } } },
+      ],
+    },
   ],
 };
 

@@ -30,7 +30,7 @@ function createApp(deps) {
   const app = express();
   app.disable('x-powered-by');
   app.use(securityHeaders);
-  app.use(express.json({ limit: '100kb' }));
+  app.use(express.json({ limit: '15mb' }));
   app.use(express.static(path.join(config.root, 'public'), { index: 'index.html' }));
   app.get('/vendor/lucide.min.js', (req, res) => res.sendFile(LUCIDE));
 
@@ -74,7 +74,8 @@ function createApp(deps) {
     if (!button) throw new ActionError('Botao nao encontrado.', 404);
     log('acao', button.id, button.action.type, 'por', req.ip);
     const result = await runAction(button.action, ctx, { confirmed: req.body?.confirm === true });
-    res.json({ ok: true, button: button.id, result: button.action.type.startsWith('nextor.') ? result : undefined });
+    const isBridge = button.action.type.startsWith('nextor.') || button.action.type.startsWith('estudos.');
+    res.json({ ok: true, button: button.id, result: isBridge ? result : undefined });
   });
 
   // Runs a catalog action without saving a button (used by the "Testar" button in the editor).
@@ -82,7 +83,8 @@ function createApp(deps) {
     const action = validateAction(req.body?.action, ctx);
     log('teste', action.type, 'por', req.ip);
     const result = await runAction(action, ctx, { confirmed: req.body?.confirm === true });
-    res.json({ ok: true, result: action.type.startsWith('nextor.') ? result : undefined });
+    const isBridge = action.type.startsWith('nextor.') || action.type.startsWith('estudos.');
+    res.json({ ok: true, result: isBridge ? result : undefined });
   });
 
   api.post('/nextor', async (req, res) => {
@@ -95,6 +97,41 @@ function createApp(deps) {
   api.post('/nextor/modo', async (req, res) => res.json(await nextor.modo(req.body?.modo)));
   api.post('/nextor/identidade', async (req, res) => res.json(await nextor.identidade(req.body?.identidade)));
   api.post('/nextor/conversa', async (req, res) => res.json(await nextor.conversa(req.body?.texto, req.body?.falar)));
+
+  // Nextor study bridge endpoints
+  api.get('/estudos/disciplinas', async (req, res) => res.json(await nextor.estudosDisciplinas()));
+  api.get('/estudos/aulas/status', async (req, res) => res.json(await nextor.estudosStatusAula()));
+  api.post('/estudos/aulas/gravar', async (req, res) => {
+    const result = await runAction({ type: 'estudos.gravar_aula', params: req.body }, ctx);
+    res.json({ ok: true, result });
+  });
+  api.post('/estudos/aulas/parar', async (req, res) => {
+    const result = await runAction({ type: 'estudos.parar_aula', params: req.body }, ctx);
+    res.json({ ok: true, result });
+  });
+  api.post('/estudos/resumo', async (req, res) => {
+    const result = await runAction({ type: 'estudos.resumo', params: req.body }, ctx);
+    res.json({ ok: true, result });
+  });
+  api.post('/estudos/quiz/gerar', async (req, res) => {
+    const result = await runAction({ type: 'estudos.quiz', params: req.body }, ctx);
+    res.json({ ok: true, result });
+  });
+  api.post('/estudos/quiz/responder', async (req, res) => {
+    const result = await runAction({ type: 'estudos.quiz_responder', params: req.body }, ctx);
+    res.json({ ok: true, result });
+  });
+  api.get('/estudos/quiz/historico', async (req, res) => {
+    res.json(await nextor.estudosQuizHistorico(req.query.disciplina));
+  });
+  api.post('/estudos/perguntar', async (req, res) => {
+    const result = await runAction({ type: 'estudos.perguntar', params: req.body }, ctx);
+    res.json({ ok: true, result });
+  });
+  api.post('/estudos/upload', async (req, res) => {
+    const result = await runAction({ type: 'estudos.upload_material', params: req.body }, ctx);
+    res.json({ ok: true, result });
+  });
 
   api.post('/screen/ticket', (req, res) => {
     if (!config.screenStream) return res.status(404).json({ error: 'Espelhamento de tela desligado.' });
